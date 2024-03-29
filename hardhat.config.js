@@ -1,6 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
-require('@openzeppelin/hardhat-upgrades');
-require('dotenv').config();
+require("@openzeppelin/hardhat-upgrades");
+require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -13,6 +13,12 @@ module.exports = {
       },
     },
   },
+  resolver: {
+    // Enable the plugin here
+    node: {
+      import: ["@openzeppelin/contracts-upgradeable"],
+    },
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
@@ -22,8 +28,8 @@ module.exports = {
       accounts: [process.env.SEPOLIA_PRIVATE_KEY],
     },
     localhost: {
-        url: "http://127.0.0.1:8545",
-        accounts: [],
+      url: "http://127.0.0.1:8545",
+      accounts: [],
     },
-},
+  },
 };

@@ -34,19 +34,19 @@ contract NtdTAO is
    */
   uint256 public exchangeRate; // 1 * 10^18
   /*
-   * How much TAO it cost to unstake. This is to account for bridging cost from finney to eth
+   * Amount of TAO it cost to unstake. This is to account for bridging cost from finney to eth
    */
   uint256 public unstakingFee;
   /*
-   * How much TAO it cost to stake. This is to account for bridging cost from eth to finney
+   * Amount of TAO it cost to stake. This is to account for bridging cost from eth to finney
    */
   uint256 public stakingFee;
   /*
-   * How much TAO it cost to bridge.
+   * Amount of TAO it cost to bridge.
    */
   uint256 public bridgingFee;
   /*
-   * How much is needed to be staked to be able to perform staking in 1 txn
+   * Minimum amount needed to be staked to be able to perform staking in 1 txn
    */
   uint256 public minStakingAmt;
   /*
@@ -202,9 +202,9 @@ contract NtdTAO is
 
   // End of Declaration of all events
 
-  // constructor() {
-  //   _disableInitializers();
-  // }
+  constructor() {
+    _disableInitializers();
+  }
 
   /*
    *
@@ -224,7 +224,6 @@ contract NtdTAO is
     __AccessControl_init();
     __ReentrancyGuard_init();
     _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
-    _transferOwnership(initialOwner);
     _grantRole(DEFAULT_ADMIN_ROLE, initialOwner);
     maxSupply = initialSupply;
   }
@@ -366,7 +365,7 @@ contract NtdTAO is
   function setLowerExchangeRateBound(uint256 _newLowerBound) public hasExchangeUpdateRole {
     require(_newLowerBound > 0, "New lower bound must be more than 0");
     require(
-      _newLowerBound < upperExchangeRateBound,
+      _newLowerBound < upperExchangeRateBound || upperExchangeRateBound == 0,
       "New lower bound must be less than current upper bound"
     );
     lowerExchangeRateBound = _newLowerBound;
@@ -608,10 +607,7 @@ contract NtdTAO is
     // If we have not added the unstake request, it means that
     // we need to push a new unstake request into the array
     if (!added) {
-      require(
-        unstakeRequests[msg.sender].length < maxUnstakeRequests,
-        "Maximum unstake requests exceeded"
-      );
+      require(length < maxUnstakeRequests, "Maximum unstake requests exceeded");
       unstakeRequests[msg.sender].push(
         UnstakeRequest({
           amount: wntdTAOAmt,
@@ -718,6 +714,11 @@ contract NtdTAO is
       UserRequest calldata request = requests[i];
       unstakeRequests[request.user][request.requestIndex]
         .isReadyForUnstake = true;
+      emit AdminUnstakeApproved(
+        request.user,
+        request.requestIndex,
+        block.timestamp
+      );
     }
 
     // Transfer the tao from the withdrawal manager to this contract
@@ -726,16 +727,6 @@ contract NtdTAO is
       address(this),
       totalRequiredTaoAmt
     );
-
-    // Emit events after state changes and external interactions
-    for (uint256 i = 0; i < requests.length; i++) {
-      UserRequest calldata request = requests[i];
-      emit AdminUnstakeApproved(
-        request.user,
-        request.requestIndex,
-        block.timestamp
-      );
-    }
   }
 
   /*
@@ -783,7 +774,6 @@ contract NtdTAO is
    *
    */
   function updateExchangeRate(uint256 newRate) public hasExchangeUpdateRole {
-    require(newRate > 0, "New rate must be more than 0");
     require(
       newRate >= lowerExchangeRateBound && newRate <= upperExchangeRateBound,
       "New rate must be within bounds"
@@ -882,7 +872,7 @@ contract NtdTAO is
    * Note that stakingFee cna be 0% (0) so we do need to check for that
    *
    */
-  function wrap(uint256 wtaoAmount) public nonReentrant checkPaused {
+  function wrap(uint256 wtaoAmount) public checkPaused {
     // Deposit cap amount
     require(
       maxDepositPerRequest >= wtaoAmount,
@@ -918,14 +908,15 @@ contract NtdTAO is
 
     uint256 wntdTAOAmount = getWntdTAObyWTAO(wrapAmountAfterFee);
 
-    // Perform token transfers
     _mintWithSupplyCap(msg.sender, wntdTAOAmount);
-    _transferToVault(feeAmt);
     uint256 amtToBridge = wrapAmountAfterFee + bridgingFee;
-    _transferToContract(amtToBridge);
 
     // We add this to the total amount we would like to batch together. 
     batchTAOAmt += amtToBridge;
+    
+    // Perform token transfers
+    _transferToVault(feeAmt);
+    _transferToContract(amtToBridge);
     emit UserStake(msg.sender, block.timestamp, wtaoAmount, wntdTAOAmount);
   }
 
