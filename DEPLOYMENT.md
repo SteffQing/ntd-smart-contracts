@@ -2,14 +2,17 @@
 
 ## Prerequisites
 Node.js and npm installed
+
 Hardhat environment set up
+
 Deployment account with ETH
 
 ## Steps
 Clone the repository and install dependencies
 
-git clone [repo](https://github.com/neuraltensordynamics/ntd-smart-contracts)
+git clone [repo](https://github.com/neuraltensordynamics/ntd-smart-contracts, "NTD Contracts")
 cd ntd-smart-contracts
+
 npm install
 
 
@@ -18,7 +21,9 @@ npm install
 Copy .env.example to .env and fill in the values:
 
 ETHERSCAN_API_KEY=
+
 INFURA_API_KEY=
+
 SEPOLIA_PRIVATE_KEY=
 
 
@@ -29,7 +34,7 @@ npx hardhat compile
 
 
 ## Deploy the contracts
-Run npx hardhat run --network sepolia scripts/deploy.js
+Run npx hardhat run --network sepolia migrations/deploy.js
 
 This will deploy the NtdTAO contract.
 
